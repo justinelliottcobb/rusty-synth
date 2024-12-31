@@ -1,11 +1,6 @@
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use rust_synth::{
-    modulators::{ModulationOscillator, ModulationShape},
-    oscillators::MixedOscillator,
-    processors::{BiquadFilter, VCA},
-    traits::{Modulatable, Oscillator},
-};
+use rust_synth::voice::Voice;
 
 fn main() -> Result<()> {
     let host = cpal::default_host();
@@ -13,25 +8,20 @@ fn main() -> Result<()> {
     let config = device.default_output_config()?;
     let sample_rate = config.sample_rate().0 as f32;
 
-    let mut audio_osc = MixedOscillator::new(440.0, sample_rate, 0.3);
+    let mut voice = Voice::new(sample_rate);
 
-    let mut vca = VCA::new(0.5, 0.8);
-
-    let mut filter = BiquadFilter::new(sample_rate, 1000.0, 0.1); // Much lower resonance
-    let mut filter_lfo = ModulationOscillator::new(0.5, sample_rate, ModulationShape::Triangle); // Faster, triangle wave
+    // Set initial parameters
+    voice.set_frequency(440.0);
+    voice.set_filter_cutoff(1000.0);
+    voice.set_filter_resonance(0.0);
+    voice.set_filter_lfo_rate(0.5);
+    voice.set_mix_ratio(0.3);
 
     let stream = device.build_output_stream(
         &config.into(),
         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
             for sample in data.iter_mut() {
-                let audio_sample = audio_osc.next_sample();
-
-                // Reduce modulation depth significantly
-                let filter_mod = filter_lfo.next_sample() * 0.25; // Only use 25% modulation depth
-                filter.set_modulation(filter_mod);
-
-                let filtered = filter.process(audio_sample);
-                *sample = vca.process(filtered * 0.5); // Reduce output volume
+                *sample = voice.process_sample();
             }
         },
         |err| eprintln!("Error: {}", err),
