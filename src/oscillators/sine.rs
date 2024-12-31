@@ -15,6 +15,10 @@ impl SineOscillator {
             sample_rate,
         }
     }
+
+    pub fn get_sample_rate(&self) -> f32 {
+        self.sample_rate
+    }
 }
 
 impl Oscillator for SineOscillator {

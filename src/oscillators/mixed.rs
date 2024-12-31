@@ -15,6 +15,15 @@ impl MixedOscillator {
             mix_ratio: mix_ratio.clamp(0.0, 1.0),
         }
     }
+
+    pub fn set_frequency(&mut self, freq: f32) {
+        self.sine = SineOscillator::new(freq, self.sine.get_sample_rate());
+        self.square = SquareOscillator::new(freq, self.square.get_sample_rate());
+    }
+
+    pub fn set_mix_ratio(&mut self, ratio: f32) {
+        self.mix_ratio = ratio.clamp(0.0, 1.0);
+    }
 }
 
 impl Oscillator for MixedOscillator {

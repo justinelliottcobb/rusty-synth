@@ -92,4 +92,12 @@ impl BiquadFilter {
         self.b1 = -a1 / a0;
         self.b2 = -a2 / a0;
     }
+
+    pub fn get_cutoff(&self) -> f32 {
+        self.cutoff
+    }
+
+    pub fn get_resonance(&self) -> f32 {
+        self.resonance
+    }
 }
