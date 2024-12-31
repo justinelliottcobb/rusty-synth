@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     let mut voice = Voice::new(sample_rate);
     let start_time = Instant::now();
 
-    // Set initial parameters
+    // Initial settings
     voice.set_frequency(440.0);
     voice.set_filter_cutoff(1000.0);
     voice.set_filter_resonance(0.05);
@@ -24,17 +24,20 @@ fn main() -> Result<()> {
         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
             let elapsed = start_time.elapsed().as_secs_f32();
 
-            // Frequency sweep between 220Hz and 880Hz
-            let freq = 220.0 + (330.0 * (elapsed * 0.5).sin() + 330.0);
+            // Compound frequency modulation using two sine waves
+            let freq_mod1 = (elapsed * 0.5).sin(); // Slow wave
+            let freq_mod2 = (elapsed * 2.0).sin() * 0.3; // Faster wave with less depth
+            let freq = 440.0 + ((freq_mod1 + freq_mod2) * 200.0);
             voice.set_frequency(freq);
 
-            // Filter cutoff sweep
-            let cutoff = 500.0 + (2000.0 * (elapsed * 0.25).sin() + 2000.0);
+            // Exponential filter cutoff sweep
+            let filter_mod = (elapsed * 0.15).sin();
+            let cutoff = 500.0 * (1.0 + filter_mod * 4.0).exp2();
             voice.set_filter_cutoff(cutoff);
 
-            // Mix ratio sweep
-            let mix = (elapsed * 0.1).sin() * 0.5 + 0.5;
-            voice.set_mix_ratio(mix);
+            // "Random-like" mix ratio using multiple waves
+            let mix = ((elapsed * 0.1).sin() + (elapsed * 0.23).sin() * 0.5) * 0.25 + 0.5;
+            voice.set_mix_ratio(mix.clamp(0.0, 1.0));
 
             for sample in data.iter_mut() {
                 *sample = voice.process_sample();
@@ -45,6 +48,6 @@ fn main() -> Result<()> {
     )?;
 
     stream.play()?;
-    std::thread::sleep(std::time::Duration::from_secs(10)); // Run for 10 seconds
+    std::thread::sleep(std::time::Duration::from_secs(10));
     Ok(())
 }
